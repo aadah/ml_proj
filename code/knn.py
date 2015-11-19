@@ -2,7 +2,7 @@ import numpy as np
 import scipy.spatial as sps
 
 
-class MultkNN:
+class MultikNN:
     def __init__(self, K, k):
         self.K = K
         self.knns = [kNN(k) for _ in xrange(K)]
