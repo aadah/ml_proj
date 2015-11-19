@@ -1,0 +1,9 @@
+import numpy as np
+import scipy.optimize as opt
+from sklearn import preprocessing
+from cvxopt import matrix, solvers
+
+
+class SVM:
+    def __init__(self):
+        
