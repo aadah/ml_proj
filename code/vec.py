@@ -6,6 +6,7 @@ import re
 import os  
 import config
 import collections
+import numpy as np
 
 STOPWORDS = nltk.corpus.stopwords.words('english')
 STEMMER = nltk.stem.SnowballStemmer('english')
@@ -15,12 +16,14 @@ TERMS_FILE = 'terms.txt'
 
 class Article:
     
-    def __init__(self, text, metaDict):
+    def __init__(self, text, metaDict, topics):
         #self.text = text
         # body tags cannot be accessed by BeautifulSoup
-        #soup = BeautifulSoup(self.text.replace("BODY","CONTENT"), 'lxml')
+        #print text
+        #soup = BeautifulSoup(text.replace("BODY","CONTENT"), 'lxml')
         #self.date = soup.date
         #self.topics = soup.topics
+        #print self.topics
         '''
         self.places = soup.places
         self.people = soup.people
@@ -31,8 +34,11 @@ class Article:
         self.dateline = soup.dateline
         '''
         #text = soup.content
-        self.text = text
-        self.words = self.stemAndRemoveStopwords(text)
+        #self.text = text
+        #self.words = self.stemAndRemoveStopwords(text)
+        self.topics = topics
+        self.word_bag = self.getBagOfWords(text)
+        #print topics
         self.id = int(metaDict['newid'])
         self.split = metaDict['lewissplit']
         #print self.id
@@ -58,21 +64,36 @@ class Article:
     def getBagOfWords(self, text=''):
         word_count = collections.defaultdict(int)
         word_list = []
-        if len(text) == 0:
-            text = self.text
         text = re.sub('[^a-z]',' ',text.lower())
         sentences = nltk.sent_tokenize(text)
         for sent in sentences:
             words = nltk.word_tokenize(sent)
-            word_list += [STEMMER.stem(w) for w in words if w not in STOPWORDS]
+            #word_list += [STEMMER.stem(w) for w in words if w not in STOPWORDS] # a copy of the results from this is backed up
+            word_list += [STEMMER.stem(w) for w in words if STEMMER.stem(w) not in STOPWORDS]
         for word in word_list:
             word_count[word] += 1
         return word_count
+
+    def getVector(self, terms_index, topics_index):
+        num_words = len(terms_index)
+        vector = np.ndarray(num_words + len(topics_index))
+        for word in self.word_bag:
+            if word in terms_index:
+                vector[terms_index[word]] = self.word_bag[word]
+        for topic in self.topics:
+            vector[num_words + topics_index[topic]] = 1
+        return vector
+
 
 class Dossier:
     
     def __init__(self):
         self.articles = {}
+        self.topics_index = {}
+        self.readResource('topics')
+        self.terms_index = {}
+        self.readResource('terms')
+        print self.topics_index
     
     def addArticle(self, article):
         # Takes in an Article object and adds to its dictionary of articles
@@ -93,16 +114,33 @@ class Dossier:
     def readSgm(self, fname):
         with open(fname, 'r') as f:
             inArticle = False
+            inBody = False
             meta = ''
             text = ''
+            topics = []
             metaDict = None
+            count = 0
             for line in f:
                 if inArticle:
-                    text += line
+                    if line.startswith('<TOPICS>'):
+                        if metaDict and self.isModApte(metaDict):
+                            topics = re.sub(r'<(/?)D>',' ',line[8:-10]).split()
+                    elif '<BODY>' in line:
+                        inBody = True
+                    elif '</BODY>' in line:
+                        inBody = False
+                        text = text[text.index('<BODY>')+6:]
+                    if inBody:
+                        # adding after prevents adding final line, which has no text
+                        text += line
                     if line.startswith("</REUTERS>"):
                         inArticle = False
-                        a = Article(text, metaDict)
-                        self.addArticle(a)                            
+                        a = Article(text, metaDict, topics)
+                        self.addArticle(a)
+                        count += 1
+                        #print 'id', a.getId()
+                        #if count > 10:
+                        #    return
                 elif line.startswith("<REUTERS"):
                     meta = line
                     # check if the article is used for the ModApte split
@@ -158,16 +196,38 @@ class Dossier:
                     metaDict = self.readMeta(meta)
         return word_count
 
+    def readResource(self, mode):
+        fname = TOPICS_FILE
+        if mode == 'terms':
+            fname = TERMS_FILE
+        resource = []
+        resource_dict = {}
+        with open(fname, 'r') as f:
+            for line in f:
+                line = line.strip()
+                resource.append(line)
+                resource_dict[line] = len(resource) - 1
+        if mode == 'topics':
+            self.topics_index = resource_dict
+            print len(self.topics_index)
+        elif mode == 'terms':
+            self.terms_index = resource_dict
+            print len(self.terms_index)
+
     def readDir(self, dirName, mode='read'):
         train_topics = set()
         test_topics = set()
         word_count = collections.defaultdict(int)
         count = 0
         for fname in os.listdir(dirName):
+            # limit for toy experiments
+            #if count > 1:
+            #    break
+            print 'count', count
             if fname.endswith('.sgm'):
                 count += 1
                 if mode == 'read':
-                    return self.readSgm('%s/%s' %(dirName, fname))
+                    self.readSgm('%s/%s' %(dirName, fname))
                 elif mode == 'topics':
                     new_train_topics, new_test_topics = self.learnTopics('%s/%s' %(dirName, fname))
                     train_topics.update(new_train_topics)
@@ -204,11 +264,19 @@ class Dossier:
     def isModApte(self, metaDict):
         return metaDict['topics'] == 'YES' and metaDict['lewissplit'] != 'NOT-USED'
 
+    def getArticleVector(self, i):
+        return self.getArticle(i).getVector(self.terms_index, self.topics_index)
+
+    def buildDesignMatrix(self):
+        print len(self.articles)
+
 def main():
     d = Dossier()
     #d.readDir(config.REUTERS_DIR, 'topics')
-    d.readDir(config.REUTERS_DIR, 'terms')
+    #d.readDir(config.REUTERS_DIR, 'terms')
+    d.readDir(config.REUTERS_DIR)
     #print d.getArticle(1)
+    d.buildDesignMatrix()
     
 if __name__=="__main__":
     main()
