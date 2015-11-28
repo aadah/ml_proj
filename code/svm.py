@@ -13,6 +13,7 @@ class MultiSVM:
 
     def train(self, X, Y):
         for k in xrange(self.K):
+            print '%d...' % k,
             Y_k = Y[:,k:k+1]
             self.svms[k].train(X, Y_k)
 
@@ -113,11 +114,13 @@ class SVM:
 
     def _make_P(self, X, Y):
         N = X.shape[0]
-        P = np.zeros((N,N))
+        P = np.dot(Y, Y.T) #np.zeros((N,N))
+        
         
         for i in xrange(N):
             for j in xrange(N):
-                P[i][j] = self.kernel(X[i],X[j]) * Y[i] * Y[j]
+                #P[i,j] = self.kernel(X[i],X[j]) * Y[i] * Y[j]
+                P[i,j] *= self.kernel(X[i],X[j])
 
         return P
 

@@ -7,6 +7,7 @@ import os
 import config
 import collections
 import numpy as np
+import sklearn.preprocessing as skp
 
 STOPWORDS = nltk.corpus.stopwords.words('english')
 STEMMER = nltk.stem.SnowballStemmer('english')
@@ -76,24 +77,29 @@ class Article:
 
     def getVector(self, terms_index, topics_index):
         num_words = len(terms_index)
-        vector = np.ndarray(num_words + len(topics_index))
+        num_topics = len(topics_index)
+        vector = np.zeros(num_words + num_topics)
         for word in self.word_bag:
             if word in terms_index:
                 vector[terms_index[word]] = self.word_bag[word]
         for topic in self.topics:
-            vector[num_words + topics_index[topic]] = 1
+            if topic in topics_index:
+                vector[num_words + topics_index[topic]] = 1
         return vector
 
 
 class Dossier:
     
-    def __init__(self):
+    def __init__(self, dirName=None):
         self.articles = {}
         self.topics_index = {}
         self.readResource('topics')
         self.terms_index = {}
         self.readResource('terms')
         print self.topics_index
+
+        if dirName is not None:
+            self.readDir(dirName)
     
     def addArticle(self, article):
         # Takes in an Article object and adds to its dictionary of articles
@@ -267,16 +273,78 @@ class Dossier:
     def getArticleVector(self, i):
         return self.getArticle(i).getVector(self.terms_index, self.topics_index)
 
-    def buildDesignMatrix(self):
-        print len(self.articles)
+    def buildAndSaveDesignMatrix(self, train_filename, test_filename, meta_filename):
+        print 'preparing . . .'
+
+        #N = len(self.articles) # number of articles
+        D = len(self.terms_index) # number of terms
+        K = len(self.topics_index) # number of topics
+
+        article_ids = sorted(self.articles.keys())
+        train_ids = [ID for ID in article_ids if self.articles[ID].split == 'TRAIN']
+        test_ids = [ID for ID in article_ids if self.articles[ID].split == 'TEST']
+        num_train = len(train_ids)
+        num_test = len(test_ids)
+
+        # train data
+        print 'creating train data . . .'
+        train_data = np.empty((num_train, D + K))
+
+        for n in xrange(num_train):
+            train_data[n] = self.getArticleVector(train_ids[n])
+
+        X_train, Y_train = train_data[:,:D], train_data[:,-K:]
+
+        # calculate 'tfc' weights
+        # same idf will be used for both train and test sets
+        idf = np.ones(D)
+        for n in xrange(num_train):
+            for d in xrange(D):
+                if X_train[n,d] != 0.0:
+                    idf[d] += 1.0
+        idf = np.log(num_train / idf)
+
+        X_train = np.multiply(X_train, idf)
+        skp.normalize(X_train, copy=False)
+        train_data = np.hstack((X_train, Y_train))
+        np.save(train_filename, train_data)
+
+        # delete once saved to free up memory
+        del train_data, X_train, Y_train
+
+        # now test data
+        print 'creating test data . . .'
+        test_data = np.empty((num_test, D + K))
+
+        for n in xrange(num_test):
+            test_data[n] = self.getArticleVector(test_ids[n])
+
+        X_test, Y_test = test_data[:,:D], test_data[:,-K:]
+
+        X_test = np.multiply(X_test, idf)
+        skp.normalize(X_test, copy=False)
+        test_data = np.hstack((X_test, Y_test))
+        np.save(test_filename, test_data)
+
+        # finally save meta data
+        print 'saving metadata . . .'
+        meta_string = 'dimensions: %d\nclasses: %d\n' % (D, K)
+        with open(meta_filename, 'w') as f:
+            f.write(meta_string)
+        
 
 def main():
-    d = Dossier()
+    d = Dossier(config.REUTERS_DIR)
     #d.readDir(config.REUTERS_DIR, 'topics')
     #d.readDir(config.REUTERS_DIR, 'terms')
-    d.readDir(config.REUTERS_DIR)
+    #d.readDir(config.REUTERS_DIR)
     #print d.getArticle(1)
-    d.buildDesignMatrix()
+    #d.buildDesignMatrix()
+    #return d
+    d.buildAndSaveDesignMatrix(config.REUTERS_TRAIN,
+                               config.REUTERS_TEST,
+                               config.REUTERS_META)
+
     
 if __name__=="__main__":
     main()
