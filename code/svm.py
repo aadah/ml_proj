@@ -1,6 +1,8 @@
+
 import numpy as np
 from cvxopt import matrix, solvers
 
+import util
 
 solvers.options['show_progress'] = False
 
@@ -13,7 +15,7 @@ class MultiSVM:
 
     def train(self, X, Y):
         for k in xrange(self.K):
-            print '%d...' % k,
+            util.my_print('%d...' % k)
             Y_k = Y[:,k:k+1]
             self.svms[k].train(X, Y_k)
 
@@ -149,11 +151,11 @@ def linear_kernel(u, v):
     return np.dot(u, v)
 
 
-def make_gaussian_kernel(bw):
+def make_gaussian_kernel(gamma):
 
     def gaussian_kernel(u, v):
         diff = u - v
-        return np.exp(- np.dot(diff, diff) / (2 * pow(bw, 2)))
+        return np.exp(- gamma * np.dot(diff, diff))
 
     return gaussian_kernel
 

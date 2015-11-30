@@ -1,10 +1,19 @@
-import svm
+import numpy as np
+
+import svm # our implementation
+import svm2 # sklearn implementation
 import knn
 import data
+import evaluate
+
+
+np.random.seed(100)
 
 
 # SVM hyperparameters
 svm_Cs = [1000000000, 0.01, 0.1, 1, 10, 100]
+
+# for our implementation
 svm_kernels = [
     ('linear', svm.linear_kernel),
     ('poly1', svm.make_polynomial_kernel(1)),
@@ -15,7 +24,21 @@ svm_kernels = [
     ('rbf0.6', svm.make_gaussian_kernel(0.6)),
     ('rbf0.8', svm.make_gaussian_kernel(0.8)),
     ('rbf1.0', svm.make_gaussian_kernel(1.0)),
-    ('rbf1.2', svm.make_gaussian_kernel(1.2)),
+    ('rbf1.2', svm.make_gaussian_kernel(1.2))
+]
+
+# for sklearn implementation
+svm2_kernels = [
+    ('linear', None),
+    ('poly', 1),
+    ('poly', 2),
+    ('poly', 3),
+    ('poly', 4),
+    ('poly', 5),
+    ('rbf', 0.6),
+    ('rbf', 0.8),
+    ('rbf', 1.0),
+    ('rbf', 1.2)
 ]
 
 # kNN hyperparameters
@@ -37,15 +60,34 @@ topics = [
 
 
 def test():
-    print 'loading data . . .'
+    # test run using degree-3 polynomial kernel with C=1
+    # for the ten main topics in reuters
+
+    print 'loading train data . . .'
     dm = data.create_data_manager()
     X_train, Y_train = dm.load_data('train')
     Y_train_slice = dm.slice_Y(Y_train, topics)
 
     print 'training svm . . .'
     K = len(topics)
-    learner = svm.MultiSVM(K, svm.make_polynomial_kernel(3), 1.0)
+    learner = svm2.MultiSVM(K, 1.0, 'poly', 3)
     learner.train(X_train, Y_train_slice)
+
+    print 'loading test data . . .'
+    dm = data.create_data_manager()
+    X_test, Y_test = dm.load_data('test')
+    Y_gold = dm.slice_Y(Y_test, topics)
+
+    print 'predicting . . .'
+    Y_pred = learner.batch_predict_classes(X_test)
+    
+    print 'evaluating . . .'
+    precision, recall = evaluate.precision_recall(Y_pred, Y_gold)
+    f1 = evaluate.f_score(precision, recall)
+
+    print 'Precision: %.3f' % precision
+    print 'Recall: %.3f' % recall
+    print 'F1: %.3f' % f1
 
 
 def test2():
@@ -73,3 +115,7 @@ def svm_experiment():
 
 def knn_experiement():
     pass
+
+
+if __name__ == '__main__':
+    test()

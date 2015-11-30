@@ -78,7 +78,7 @@ class Article:
     def getVector(self, terms_index, topics_index):
         num_words = len(terms_index)
         num_topics = len(topics_index)
-        vector = np.zeros(num_words + num_topics)
+        vector = np.hstack((np.zeros(num_words), -np.ones(num_topics)))
         for word in self.word_bag:
             if word in terms_index:
                 vector[terms_index[word]] = self.word_bag[word]
@@ -96,7 +96,7 @@ class Dossier:
         self.readResource('topics')
         self.terms_index = {}
         self.readResource('terms')
-        print self.topics_index
+        #print self.topics_index
 
         if dirName is not None:
             self.readDir(dirName)
@@ -215,10 +215,10 @@ class Dossier:
                 resource_dict[line] = len(resource) - 1
         if mode == 'topics':
             self.topics_index = resource_dict
-            print len(self.topics_index)
+            #print len(self.topics_index)
         elif mode == 'terms':
             self.terms_index = resource_dict
-            print len(self.terms_index)
+            #print len(self.terms_index)
 
     def readDir(self, dirName, mode='read'):
         train_topics = set()
