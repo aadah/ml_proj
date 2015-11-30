@@ -46,13 +46,13 @@ class SVM:
         self.kernel_param = kernel_param
 
         if kernel == 'linear':
-            self.model = SVC(C=C, kernel=kernel)#, class_weight='balanced')
+            self.model = SVC(C=C, kernel=kernel, class_weight='balanced')
         elif kernel == 'poly':
             # kernel param is degree of polynomial
-            self.model = SVC(C=C, kernel=kernel, degree=kernel_param, coef0=1.0)#, class_weight='balanced')
+            self.model = SVC(C=C, kernel=kernel, degree=kernel_param, coef0=1.0, class_weight='balanced')
         elif kernel == 'poly':
             # kernel param is gamma param of rbf
-            self.model = SVC(C=C, kernel=kernel, gamma=kernel_param)#, class_weight='balanced')
+            self.model = SVC(C=C, kernel=kernel, gamma=kernel_param, class_weight='balanced')
 
 
     def train(self, X, Y, alpha_thresh=1e-6):
