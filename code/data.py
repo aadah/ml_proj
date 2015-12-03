@@ -37,6 +37,13 @@ class DataManager:
         return Y_slice
 
 
+    def order_topics(self, topics):
+        l = sorted([(self.topics_index[topic], topic) for topic in topics], key=lambda x: x[0])
+        ordered = [x[-1] for x in l]
+
+        return ordered
+
+
 def create_data_manager():
     return DataManager(config.REUTERS_TRAIN, config.REUTERS_TEST, config.REUTERS_META)
 

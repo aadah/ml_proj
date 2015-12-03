@@ -38,14 +38,26 @@ def precision_recall(Y_pred, Y_gold):
 
     print true_pos, true_neg, false_pos, false_neg
     
-    precision = true_pos / (true_pos + false_pos)
+    if true_pos + false_pos > 0:
+        precision = true_pos / (true_pos + false_pos)
+    else:
+        precision = 0.0
+
     recall = true_pos / (true_pos + false_neg)
 
     return (precision, recall)
 
 
-def split_precision_recall(Y_pred, Y_gold):
-    pass
+def per_topic_results(Y_pred, Y_gold, beta=1):
+    all_results = []
+    _, K = Y_gold.shape
+
+    for k in xrange(K):
+        p, r = precision_recall(Y_pred[:,k:k+1], Y_gold[:,k:k+1])
+        f = f_score(p, r, beta=beta)
+        all_results.append((p,r,f))
+
+    return all_results
 
 
 def f_score(precision, recall, beta=1):
