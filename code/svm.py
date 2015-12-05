@@ -8,16 +8,16 @@ solvers.options['show_progress'] = False
 
 
 class MultiSVM:
-    def __init__(self, K, kernel, C):
+    def __init__(self, K, C, kernel):
         self.K = K
-        self.svms = [SVM(kernel, C) for _ in xrange(K)]
+        self.svms = [SVM(C, kernel) for _ in xrange(K)]
 
 
-    def train(self, X, Y):
+    def train(self, X, Y, balance=False, max_per_class=100):
         for k in xrange(self.K):
-            util.my_print('%d...' % k)
             Y_k = Y[:,k:k+1]
-            self.svms[k].train(X, Y_k)
+            self.svms[k].train(X, Y_k, balance=balance, max_per_class=max_per_class)
+            util.my_print('%d . . .' % (k+1), same_line=True)
 
 
     def predict_margins(self, x):
@@ -53,9 +53,9 @@ class MultiSVM:
 
 
 class SVM:
-    def __init__(self, kernel, C):
-        self.kernel = kernel
+    def __init__(self, C, kernel):
         self.C = C
+        self.kernel = kernel
 
         #params
         self.alphas = None
@@ -63,22 +63,64 @@ class SVM:
         self.support_vectors = None
 
 
-    def train(self, X, Y, alpha_thresh=1e-6):
+    def train(self, X, Y, alpha_thresh=1e-6,
+              balance=False,
+              max_per_class=100): # only used if balance == True
+
         self.alphas = []
         self.support_targets = []
         self.support_vectors = []
 
-        X_pad = np.pad(X, ((0,0),(1,0)), 'constant', constant_values=1)
+        X = np.pad(X, ((0,0),(1,0)), 'constant', constant_values=1)
+
+        if balance:
+            X, Y = self._balance(X, Y, max_per_class)
+            print 'X dim:', X.shape
         
-        args = self._make_svm_params(X_pad, Y)
+        args = self._make_svm_params(X, Y)
         sol = solvers.qp(*args)
         alphas = np.array(sol['x'])
-        triples = [triple for triple in zip(alphas, Y, X_pad) if triple[0][0] >= alpha_thresh]
+        triples = [triple for triple in zip(alphas, Y, X) if triple[0][0] >= alpha_thresh]
 
         for (alpha, y, x) in triples:
             self.alphas.append(alpha[0])
             self.support_targets.append(y[0])
             self.support_vectors.append(x)
+
+
+    def _balance(self, X, Y, max_per_class):
+        N, D = X.shape
+        tally = Y.sum()
+        
+        if tally == 0: # already balanced
+            num_pos = min(N / 2, max_per_class)
+            num_neg = num_pos
+
+        elif tally > 0: # more positive than negative
+            num_neg = min((N-tally) / 2, max_per_class)
+            num_pos = num_neg
+                
+        elif tally < 0: # more negative than positive
+            num_pos = min((N-abs(tally)) / 2, max_per_class)
+            num_neg = num_pos
+
+        new_X = np.empty((num_pos+num_neg, D))
+        new_Y = np.empty((num_pos+num_neg, 1))
+        i = 0
+
+        for n in xrange(N):
+            if Y[n][0] == 1 and num_pos > 0:
+                new_X[i] = X[n]
+                new_Y[i] = Y[n]
+                num_pos -= 1
+                i += 1
+            elif Y[n][0] == -1 and num_neg > 0:
+                new_X[i] = X[n]
+                new_Y[i] = Y[n]
+                num_neg -= 1
+                i += 1
+
+        return new_X, new_Y
 
     
     def predict_margin(self, x):
@@ -116,8 +158,8 @@ class SVM:
 
     def _make_P(self, X, Y):
         N = X.shape[0]
-        P = np.dot(Y, Y.T) #np.zeros((N,N))
-        
+        #P = np.zeros((N,N))
+        P = np.dot(Y, Y.T)
         
         for i in xrange(N):
             for j in xrange(N):
