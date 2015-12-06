@@ -179,7 +179,9 @@ def svm2_experiment(C):
 
         print 'now using model %s . . .' % model
         learner = svm2.MultiSVM(K, C, kernel, kernel_param)
-        learner.train(X_train, Y_train_slice)
+        learner.train(X_train, Y_train_slice,
+                      balance=True,
+                      max_per_class=3000)
         Y_pred = learner.batch_predict_classes(X_test)
 
         results = evaluate.per_topic_results(Y_pred, Y_gold)
@@ -189,7 +191,7 @@ def svm2_experiment(C):
         final_results[model] = results_dict
 
     print 'saving final results . . .'
-    with open('results/svm2_final_results_C_%.1f.txt' % C, 'w') as f:
+    with open('results/svm2_final_results_C_%.1f_partial.txt' % C, 'w') as f:
         pprint(final_results, stream=f)
 
 
@@ -199,5 +201,6 @@ def knn_experiement():
 
 if __name__ == '__main__':
     #test()
-    #svm2_experiment(1000000000.0)
-    svm_experiment(1000000000.0)
+    #svm2_experiment(1000000000.0) # all data
+    #svm_experiment(1000000000.0) # part of data
+    svm2_experiment(1000000000.0) # part of data
