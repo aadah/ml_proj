@@ -67,7 +67,7 @@ class SVM:
 
 
     def train(self, X, Y, alpha_thresh=1e-6,
-              balance='p',
+              balance='k',
               max_per_class=100,
               topic=''):
         if len(balance) > 0:
