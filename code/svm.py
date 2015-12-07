@@ -1,3 +1,4 @@
+import os.path
 import numpy as np
 from numpy.linalg import norm
 from cvxopt import matrix, solvers
@@ -14,10 +15,18 @@ class MultiSVM:
         self.svms = [SVM(C, kernel) for _ in xrange(K)]
 
 
-    def train(self, X, Y, balance=False, max_per_class=100):
+    def train(self, X, Y, 
+              ordered_topics, 
+              balance='k', 
+              max_per_class=100):
+        topic = ''
         for k in xrange(self.K):
+            topic = ordered_topics[k]
             Y_k = Y[:,k:k+1]
-            self.svms[k].train(X, Y_k, balance=balance, max_per_class=max_per_class)
+            self.svms[k].train(X, Y_k, 
+                               balance=balance, 
+                               max_per_class=max_per_class,
+                               topic=topic)
             util.my_print('%d . . .' % (k+1), same_line=True)
 
 
@@ -65,8 +74,9 @@ class SVM:
 
 
     def train(self, X, Y, alpha_thresh=1e-6,
-              balance=False,
-              max_per_class=100): # only used if balance == True
+              balance='k',
+              max_per_class=100,
+              topic=''):
 
         self.alphas = []
         self.support_targets = []
@@ -74,8 +84,19 @@ class SVM:
 
         X = np.pad(X, ((0,0),(1,0)), 'constant', constant_values=1)
 
-        if balance:
-            X, Y = self._balance(X, Y, max_per_class)
+        if len(balance) > 0:
+            bname = 'balanced/%s-balanced_X_%s.npy' %(balance, topic)
+            if os.path.isfile(bname):
+                print 'Loading balanced X from %s . . .' % bname
+                X = np.load(bname)
+                N,_ = X.shape
+                Y = np.empty((N, 1))
+                Y[0:N/2] = np.ones((N/2, 1))
+                Y[N/2:N] = -np.ones((N/2, 1))
+            else:
+                X, Y = self._balance(X, Y, max_per_class, balance=balance)
+                np.save(bname, X)
+
             print 'X dim:', X.shape
         
         args = self._make_svm_params(X, Y)
@@ -108,35 +129,36 @@ class SVM:
             num_pos = min((N-abs(tally)) / 2, max_per_class)
             num_neg = num_pos
 
-        new_X = np.empty((num_pos+num_neg, D))
-        new_Y = np.empty((num_pos+num_neg, 1))
+        if balance == 'p':
+            new_X = np.empty((num_pos+num_neg, D))
+            new_Y = np.empty((num_pos+num_neg, 1))
+            
+            pos_data = X[Y[:, 0] == 1,:]
+            neg_data = X[Y[:, 0] == -1,:]
         
-        pos_data = X[Y[:, 0] == 1,:]
-        neg_data = X[Y[:, 0] == -1,:]
+            new_pos = self._get_k_furthest(pos_data, int(num_pos))
+            new_neg = self._get_k_furthest(neg_data, int(num_neg))
+        
+            new_X[0:num_pos] = new_pos
+            new_Y[0:num_pos] = np.ones((num_pos,1))
+            new_X[num_pos:num_pos+num_neg] = new_neg
+            new_Y[num_pos:num_pos+num_neg] = -np.ones((num_neg,1))
+        
+        elif balance == 'k':
+            # original rebalancer
+            i = 0
+            for n in xrange(N):
+                if Y[n][0] == 1 and num_pos > 0:
+                    new_X[i] = X[n]
+                    new_Y[i] = Y[n]
+                    num_pos -= 1
+                    i += 1
+                elif Y[n][0] == -1 and num_neg > 0:
+                    new_X[i] = X[n]
+                    new_Y[i] = Y[n]
+                    num_neg -= 1
+                    i += 1
 
-        new_pos = self._get_k_furthest(pos_data, int(num_pos))
-        new_neg = self._get_k_furthest(neg_data, int(num_neg))
-        
-        new_X[0:num_pos] = new_pos
-        new_Y[0:num_pos] = np.ones((num_pos,1))
-        new_X[num_pos:num_pos+num_neg] = new_neg
-        new_Y[num_pos:num_pos+num_neg] = -np.ones((num_neg,1))
-        
-        '''        
-        # original rebalancer
-        i = 0
-        for n in xrange(N):
-            if Y[n][0] == 1 and num_pos > 0:
-                new_X[i] = X[n]
-                new_Y[i] = Y[n]
-                num_pos -= 1
-                i += 1
-            elif Y[n][0] == -1 and num_neg > 0:
-                new_X[i] = X[n]
-                new_Y[i] = Y[n]
-                num_neg -= 1
-                i += 1
-        '''
         return new_X, new_Y
 
     def _get_k_furthest(self, X, k):
