@@ -143,7 +143,8 @@ def svm_experiment(C):
         print 'now using model %s . . .' % model
         learner = svm.MultiSVM(K, C, kernel)
         learner.train(X_train, Y_train_slice,
-                      balance=True,
+                      ordered_topics,
+                      balance='p', # use balance = '' if don't want to balance
                       max_per_class=3000)
         Y_pred = learner.batch_predict_classes(X_test)
 
@@ -180,7 +181,8 @@ def svm2_experiment(C):
         print 'now using model %s . . .' % model
         learner = svm2.MultiSVM(K, C, kernel, kernel_param)
         learner.train(X_train, Y_train_slice,
-                      balance=True,
+                      ordered_topics,
+                      balance='p', # use balance = '' if don't want to balance
                       max_per_class=3000)
         Y_pred = learner.batch_predict_classes(X_test)
 
