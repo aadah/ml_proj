@@ -61,7 +61,7 @@ class Visualizer:
                 else:
                     print 'Balancing for topic %s . . .' % topic
                     y = self.dm.slice_Y(self.Y, [topic])
-                    X, Y = self._balance(self.X, y, 1000)
+                    X, Y = self._balance(self.X, y, 1000, balance=balance)
                     np.save(bname, X)
             print 'Running PCA . . .'
             pca = PCA(n_components=n_components)            
@@ -180,9 +180,6 @@ class Visualizer:
             new_Y[num_pos:num_pos+num_neg] = -np.ones((num_neg,1))
         
         elif balance == 'k':
-            pass
-
-        else:
             # original rebalancer
             i = 0
             for n in xrange(N):
@@ -217,5 +214,5 @@ if __name__=="__main__":
     vis = Visualizer()
     #vis.plot_X('earn', n_components=3)
     for topic in topics:
-        vis.plot_X(topic, n_components=3, balance='p')
-        vis.plot_X(topic, n_components=2, balance='p')
+        vis.plot_X(topic, n_components=3, balance='k')
+        vis.plot_X(topic, n_components=2, balance='k')
