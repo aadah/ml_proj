@@ -12,7 +12,7 @@ np.random.seed(100)
 
 
 # SVM hyperparameters
-svm_Cs = [1000000000, 0.01, 0.1, 1, 10, 100]
+svm_Cs = [1, 10, 100]
 
 # for our implementation
 svm_kernels = [
