@@ -1,5 +1,7 @@
 import numpy as np
+from numpy.linalg import norm
 from sklearn.svm import SVC
+from heapq import nlargest
 
 import util
 
@@ -88,8 +90,21 @@ class SVM:
 
         new_X = np.empty((num_pos+num_neg, D))
         new_Y = np.empty((num_pos+num_neg, 1))
-        i = 0
+        
+        pos_data = X[Y[:, 0] == 1,:]
+        neg_data = X[Y[:, 0] == -1,:]
 
+        new_pos = self._get_k_furthest(pos_data, int(num_pos))
+        new_neg = self._get_k_furthest(neg_data, int(num_neg))
+        
+        new_X[0:num_pos] = new_pos
+        new_Y[0:num_pos] = np.ones((num_pos,1))
+        new_X[num_pos:num_pos+num_neg] = new_neg
+        new_Y[num_pos:num_pos+num_neg] = -np.ones((num_neg,1))
+        
+        '''        
+        # original rebalancer
+        i = 0
         for n in xrange(N):
             if Y[n][0] == 1 and num_pos > 0:
                 new_X[i] = X[n]
@@ -101,9 +116,22 @@ class SVM:
                 new_Y[i] = Y[n]
                 num_neg -= 1
                 i += 1
-
+        '''
         return new_X, new_Y
 
+    def _get_k_furthest(self, X, k):
+        N, D = X.shape
+        if N == k:
+            return X
+        distances = []
+        new_X = np.empty((k, D))
+        # a mapping from distance to the points with that distance from centroid
+        centroid = np.mean(X, axis=0)
+        #print centroid
+        distances = [(int(norm(x - centroid)*1000), x) for x in X]
+        furthest = nlargest(k, distances, key=lambda e:e[0])
+        new_X = np.array([e[1] for e in furthest])
+        return new_X
 
     def batch_predict_class(self, X):
         Y = self.model.predict(X)
