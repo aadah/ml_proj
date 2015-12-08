@@ -193,7 +193,7 @@ def svm2_experiment(C):
         final_results[model] = results_dict
 
     print 'saving final results . . .'
-    with open('results/svm2_final_results_C_%.1f_partial_new_balance.txt' % C, 'w') as f:
+    with open('results/svm2_final_results_C_%.1f_partial_peripheral.txt' % C, 'w') as f:
         pprint(final_results, stream=f)
 
 
@@ -240,3 +240,7 @@ if __name__ == '__main__':
     #svm_experiment(1000000000.0) # part of data
     #svm2_experiment(1000000000.0) # part of data
     knn_experiment() 
+    #svm2_experiment(1)
+    #svm2_experiment(10)
+    #svm2_experiment(100)
+
