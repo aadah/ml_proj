@@ -33,9 +33,6 @@ def precision_recall(Y_pred, Y_gold):
             else:
                 raise Exception('Gold label is not in {-1,1}')
 
-    np.save('y_pred.npy', Y_pred)
-    np.save('y_gold.npy', Y_gold)
-
     print true_pos, true_neg, false_pos, false_neg
     
     if true_pos + false_pos > 0:

@@ -120,7 +120,7 @@ def test2():
     return errors
 
 
-def svm_experiment(C):
+def svm_experiment(C, balance=''):
     K = len(topics)
     dm = data.create_data_manager()
     ordered_topics = dm.order_topics(topics)
@@ -144,7 +144,7 @@ def svm_experiment(C):
         learner = svm.MultiSVM(K, C, kernel)
         learner.train(X_train, Y_train_slice,
                       ordered_topics,
-                      balance='p', # use balance = '' if don't want to balance
+                      balance=balance, # use balance = '' if don't want to balance
                       max_per_class=3000)
         Y_pred = learner.batch_predict_classes(X_test)
 
@@ -155,11 +155,11 @@ def svm_experiment(C):
         final_results[model] = results_dict
 
     print 'saving final results . . .'
-    with open('results/svm_final_results_C_%.1f_partial_peripheral.txt' % C, 'w') as f:
+    with open('results/svm_final_results_C_%.1f_%s.txt' % (C,balance), 'w') as f:
         pprint(final_results, stream=f)
 
 
-def svm2_experiment(C):
+def svm2_experiment(C, balance=''):
     K = len(topics)
     dm = data.create_data_manager()
     ordered_topics = dm.order_topics(topics)
@@ -182,7 +182,7 @@ def svm2_experiment(C):
         learner = svm2.MultiSVM(K, C, kernel, kernel_param)
         learner.train(X_train, Y_train_slice,
                       ordered_topics,
-                      balance='p', # use balance = '' if don't want to balance
+                      balance=balance, # use balance = '' if don't want to balance
                       max_per_class=3000)
         Y_pred = learner.batch_predict_classes(X_test)
 
@@ -193,7 +193,7 @@ def svm2_experiment(C):
         final_results[model] = results_dict
 
     print 'saving final results . . .'
-    with open('results/svm2_final_results_C_%.1f_partial_peripheral.txt' % C, 'w') as f:
+    with open('results/svm2_final_results_C_%.1f_%s.txt' % (C,balance), 'w') as f:
         pprint(final_results, stream=f)
 
 
@@ -244,7 +244,15 @@ if __name__ == '__main__':
     #svm2_experiment(10)
     #svm2_experiment(100)
 
-    svm_experiment(1000000000.0)
+    svm_experiment(1000000000.0, 'p')
+    svm_experiment(1000000.0, 'p')
+    svm_experiment(1000.0, 'p')
+    svm_experiment(1.0, 'p')
+
+    svm_experiment(1000000000.0, 'k')
+    svm_experiment(1000000.0, 'k')
+    svm_experiment(1000.0, 'k')
+    svm_experiment(1.0, 'k')
     #svm_experiment(1)
     #svm_experiment(10)
     #svm_experiment(100)
