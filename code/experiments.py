@@ -244,15 +244,17 @@ if __name__ == '__main__':
     #svm2_experiment(10)
     #svm2_experiment(100)
 
-    svm_experiment(1000000000.0, 'p')
-    svm_experiment(1000000.0, 'p')
-    svm_experiment(1000.0, 'p')
-    svm_experiment(1.0, 'p')
+    #svm_experiment(1000000000.0, 'p')
+    #svm_experiment(1000000.0, 'p')
+    #svm_experiment(1000.0, 'p')
+    #svm_experiment(1.0, 'p')
 
-    svm_experiment(1000000000.0, 'k')
-    svm_experiment(1000000.0, 'k')
+    svm_experiment(1.0, 'k')    
     svm_experiment(1000.0, 'k')
-    svm_experiment(1.0, 'k')
+    svm_experiment(1000000.0, 'k')
+    svm_experiment(1000000000.0, 'k')
+    
+    
     #svm_experiment(1)
     #svm_experiment(10)
     #svm_experiment(100)
