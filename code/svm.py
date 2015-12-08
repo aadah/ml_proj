@@ -82,8 +82,6 @@ class SVM:
         self.support_targets = []
         self.support_vectors = []
 
-        X = np.pad(X, ((0,0),(1,0)), 'constant', constant_values=1)
-
         if len(balance) > 0:
             bname = 'balanced/%s-balanced_X_%s.npy' %(balance, topic)
             if os.path.isfile(bname):
@@ -98,6 +96,8 @@ class SVM:
                 np.save(bname, X)
 
             print 'X dim:', X.shape
+
+        X = np.pad(X, ((0,0),(1,0)), 'constant', constant_values=1)
         
         args = self._make_svm_params(X, Y)
         sol = solvers.qp(*args)
