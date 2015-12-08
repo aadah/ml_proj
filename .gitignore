@@ -2,3 +2,5 @@
 code/*~
 code/*.pyc
 code/balanced/
+code/distance_matrix.npy
+code/top_indices.npy

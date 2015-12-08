@@ -213,7 +213,7 @@ def knn_experiment():
     final_results = {}
 
     print 'interating over models . . .'
-    for k in [1,15,30,45,60]:
+    for k in [1,15,31,45,61]:
         model = '%d-nearest neighbours' % k
 
         print 'now using model %s . . .' % model
