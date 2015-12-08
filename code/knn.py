@@ -52,7 +52,7 @@ class kNN:
 
         count_one = len(filter(lambda r: r[1] == 1.0, top))
         count_two = len(top) - count_one
-
+        
         return 1.0 if count_one > count_two else -1.0
 
     def batch_predict_class(self, X):
@@ -69,4 +69,4 @@ class kNN:
         return float(incorrect) / N
 
     def _distance(self, u, v):
-        return sps.distance.cosine(u, v)
+        return sps.distance.euclidean(u, v)

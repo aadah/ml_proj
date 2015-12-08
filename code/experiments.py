@@ -197,8 +197,41 @@ def svm2_experiment(C):
         pprint(final_results, stream=f)
 
 
-def knn_experiement():
-    pass
+def knn_experiment():
+    K = len(topics)
+    dm = data.create_data_manager()
+    ordered_topics = dm.order_topics(topics)
+
+    print 'loading train data . . .'
+    X_train, Y_train = dm.load_data('train')
+    Y_train_slice = dm.slice_Y(Y_train, ordered_topics)
+
+    print 'loading test data . . .'
+    X_test, Y_test = dm.load_data('test')
+    Y_gold = dm.slice_Y(Y_test, ordered_topics)
+
+    final_results = {}
+
+    print 'interating over models . . .'
+    for k in [1,15,30,45,60]:
+        model = '%d-nearest neighbours' % k
+
+        print 'now using model %s . . .' % model
+        learner = knn.MultikNN(K, k)
+        # K being the number of topics, and k being the number of neighbours
+        learner.train(X_train, Y_train_slice)
+        Y_pred = learner.batch_predict_classes(X_test)
+
+        results = evaluate.per_topic_results(Y_pred, Y_gold)
+        results_dict = {topic: result for (topic, result) in zip(ordered_topics, results)}
+
+        pprint(results_dict)
+        final_results[model] = results_dict
+
+    print 'saving final results . . .'
+    with open('results/knn_final_results.txt', 'w') as f:
+        pprint(final_results, stream=f)
+    
 
 
 if __name__ == '__main__':
@@ -206,6 +239,7 @@ if __name__ == '__main__':
     #svm2_experiment(1000000000.0) # all data
     #svm_experiment(1000000000.0) # part of data
     #svm2_experiment(1000000000.0) # part of data
+    #knn_experiment() 
     #svm2_experiment(1)
     #svm2_experiment(10)
     #svm2_experiment(100)
