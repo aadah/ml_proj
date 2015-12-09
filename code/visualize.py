@@ -78,24 +78,44 @@ class Visualizer:
                 print 'No topic provided!'
                 return
             y = self.dm.slice_Y(self.Y_pca, [topic])
-            plt.title('PCA - %s' % topic)
+            plt.title('PCA with %s-balancing: %s' % (balance,topic))
         else:
             y = self.Y_pca
-            plt.title('PCA')
-        
-
+            plt.title('PCA with %s-balancing: %s' % (balance,topic))
+        self.X_pca, y = self.shuffle(self.X_pca, y, mode='swap_halves')
         y = y.reshape((y.shape[0],)) # in order for boolean mask to work
 
         if n_components == 3:
             ax = fig.add_subplot(111, projection='3d')
             for c, i, target_name in zip("rg", [-1,1], ['pos','neg']):
                 ax.scatter(self.X_pca[y == i, 0], self.X_pca[y == i, 1], zs=self.X_pca[y == i, 2], c=c, label=target_name)
+            ax.set_title('PCA with %s-balancing: %s' % (balance,topic))
         else:
             for c, i, target_name in zip("rg", [-1,1], ['pos','neg']):
                 plt.scatter(self.X_pca[y==i, 0], self.X_pca[y==i, 1], c=c, label=target_name)
         plt.legend()
         plt.show()
 
+    def shuffle(self, X, Y, mode='interleave'):
+        # interleaves positive and negative results so that when plotted, clumps of one set don't appear in front of another
+        new_X = np.empty(X.shape)
+        new_Y = np.empty(Y.shape)
+        N, _ = new_X.shape
+        if mode == 'interleave':
+            for i in xrange(N):
+                if i < N/2:
+                    new_X[i*2] = X[i]
+                    new_Y[i*2] = Y[i]
+                else:
+                    new_X[(i-N/2)*2+1] = X[i]
+                    new_Y[(i-N/2)*2+1] = Y[i]
+        elif mode == 'swap_halves':
+            new_X[:N/2] = X[N/2:]
+            new_X[N/2:] = X[:N/2]
+            new_Y[:N/2] = Y[N/2:]
+            new_Y[N/2:] = Y[:N/2]
+                
+        return new_X, new_Y
         
     def plotBoundary(self, X, Y, scoreFN, values, title=""):
         # Plot the decision boundary. For that, we will asign a score to
@@ -214,5 +234,7 @@ if __name__=="__main__":
     vis = Visualizer()
     #vis.plot_X('earn', n_components=3)
     for topic in topics:
+        vis.plot_X(topic, n_components=3, balance='p')
+        vis.plot_X(topic, n_components=2, balance='p')
         vis.plot_X(topic, n_components=3, balance='k')
         vis.plot_X(topic, n_components=2, balance='k')
